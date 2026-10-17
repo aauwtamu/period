@@ -6,7 +6,7 @@ The browser never receives the endpoint secret or service-account credentials.
 
 ## One-time setup
 
-1. Run the spreadsheet migration described in the root README first.
+1. Run the [spreadsheet setup](../docs/maintenance.md#spreadsheet-setup) first.
 2. Sign into an organization-controlled Google account that can edit the sheet.
    In the spreadsheet, choose **Extensions → Apps Script**.
 3. Replace the editor's `Code.gs` with this folder's `Code.gs`.
@@ -48,7 +48,7 @@ An endpoint requiring an interactive Google login will not work for server calls
 
 Rename the live Bathrooms header `Need Replacement` to `Needs Restock` when
 switching to the updated app and Apps Script. Deploy `Code.gs` using
-**Manage deployments ? Edit ? New version**. The header must match exactly;
+**Manage deployments → Edit → New version**. The header must match exactly;
 there is no fallback for the old name. No inventory migration or new backup is
 needed for this header-only change. Reports now request restocks only; existing
 audit entries remain intact.

@@ -15,8 +15,10 @@ const nunito = Nunito({
   display: "swap",
 });
 export const metadata: Metadata = {
+  metadataBase: new URL(brand.siteUrl),
   title: "tamuperiod.",
   description: brand.description,
+  alternates: { canonical: "/" },
   openGraph: {
     title: brand.name,
     description: brand.description,

@@ -1,5 +1,6 @@
 export const brand = {
   name: "tamuperiod.",
+  siteUrl: "https://tamuperiod.vercel.app/",
   description:
     "Free period products. Right here on campus. Find pads, tampons, and liners at Texas A&M, and help us keep them stocked.",
   assets: {
