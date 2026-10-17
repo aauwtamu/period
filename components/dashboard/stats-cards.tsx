@@ -1,68 +1,58 @@
-"use client";
-import { useEffect } from "react";
-import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
-import { Heart, Package, Flag, ArrowUpRight } from "lucide-react";
-import type { InventorySnapshot } from "@/types/inventory";
-import { inventoryStats } from "@/lib/utils/inventory";
+﻿"use client";
 
-export function StatsCards({
-  snapshot,
-}: {
-  snapshot: InventorySnapshot | null;
-}) {
-  const reduce = useReducedMotion();
-  const controls = useAnimationControls();
-  useEffect(() => {
-    if (reduce) {
-      controls.set({ opacity: 1, y: 0 });
-      return;
-    }
-    controls.set({ opacity: 0, y: 15 });
-    void controls.start({ opacity: 1, y: 0 });
-  }, [controls, reduce]);
-  const stats = snapshot ? inventoryStats(snapshot.bathrooms) : null;
-  const cards = [
-    {
-      label: "Products available",
-      value: stats?.available,
-      note: "Pads, tampons & liners. All free.",
-      icon: Package,
-    },
-    {
-      label: "Distributed since launch",
-      value: snapshot?.distributed,
-      note: "A little help, one product at a time.",
-      icon: Heart,
-    },
-    {
-      label: "Locations needing restock",
-      value: stats?.flagged,
-      note: "Flagged for replenishment.",
-      icon: Flag,
-    },
-  ];
+import { useRef } from "react";
+import Image from "next/image";
+import { useInView } from "framer-motion";
+import type { InventorySnapshot } from "@/types/inventory";
+
+const products = [
+  { key: "pads", label: "Pads", image: "pad" },
+  { key: "tampons", label: "Tampons", image: "tampon" },
+  { key: "liners", label: "Liners", image: "liner" },
+] as const;
+
+function ProductPhoto({ product }: { product: (typeof products)[number] }) {
   return (
-    <div className="stats-grid">
-      {cards.map(({ label, value, note, icon: Icon }, i) => (
-        <motion.div
-          className={`stat-card stat-card-${i}`}
-          key={label}
-          initial={false}
-          animate={controls}
-          transition={{ delay: i * 0.09, duration: 0.4 }}
+    <div className="stat-photo" aria-hidden="true">
+      <Image
+        src={`/images/products/${product.image}.png`}
+        alt=""
+        fill
+        sizes="(max-width: 640px) 110px, (max-width: 900px) 180px, 260px"
+        unoptimized
+      />
+    </div>
+  );
+}
+
+export function StatsCards({ snapshot }: { snapshot: InventorySnapshot | null }) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(gridRef, { once: true, amount: 0.3 });
+
+  const totals = snapshot?.bathrooms.reduce(
+    (counts, bathroom) => ({
+      pads: counts.pads + bathroom.pads,
+      tampons: counts.tampons + bathroom.tampons,
+      liners: counts.liners + bathroom.liners,
+    }),
+    { pads: 0, tampons: 0, liners: 0 },
+  );
+
+  return (
+    <div className="stats-grid" ref={gridRef} data-revealed={isInView}>
+      {products.map((product, index) => (
+        <article
+          className={`stat-card stat-card-${index}`}
+          key={product.key}
         >
-          <div className="stat-top">
-            <span className="stat-icon">
-              <Icon size={19} />
-            </span>
-            <ArrowUpRight size={17} aria-hidden="true" />
+          <ProductPhoto product={product} />
+          <div className="stat-copy">
+            <strong className="stat-number">
+              {totals ? totals[product.key].toLocaleString("en-US") : "—"}
+            </strong>
+            <h3>{product.label} stocked</h3>
           </div>
-          <strong className="stat-number">
-            {value === undefined ? "—" : value.toLocaleString("en-US")}
-          </strong>
-          <h3>{label}</h3>
-          <p>{note}</p>
-        </motion.div>
+        </article>
       ))}
     </div>
   );

@@ -22,12 +22,20 @@ test("inventory is responsive, searchable, and handles denied location", async (
   await page.goto("/");
   await expect(page).toHaveTitle(/tamuperiod\./);
   await expect(
+    page.getByRole("link", { name: "Request a new location" }),
+  ).toHaveAttribute("href", "https://forms.gle/vyxUFVQEbULpxQNu6");
+  await expect(
     page.getByRole("heading", { name: "Periods happen. We’ve got you." }),
   ).toBeVisible();
   await expect(page.locator(".restroom-row").first()).toBeVisible();
   const total = await page.locator(".restroom-row").count();
   expect(total).toBeGreaterThan(0);
   await expect(page.locator(".stat-number").first()).not.toHaveText("—");
+  if (testInfo.project.name === "mobile") {
+    const stats = page.locator(".stats-grid[data-revealed]");
+    await stats.scrollIntoViewIfNeeded();
+    await expect(stats).toHaveAttribute("data-revealed", "true");
+  }
   await page.screenshot({
     path: testInfo.outputPath("dashboard.png"),
     fullPage: true,
@@ -81,6 +89,21 @@ test("inventory is responsive, searchable, and handles denied location", async (
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(reportButton).toBeFocused();
+  }
+  await page.locator(".sponsor-list").scrollIntoViewIfNeeded();
+  for (const [name, href] of [
+    ["AAUW", "https://www.instagram.com/aauw.tamu/"],
+    ["WHOOP", "https://www.instagram.com/whoop.tamu/"],
+  ]) {
+    await expect(page.getByRole("link", { name, exact: true })).toHaveAttribute(
+      "href",
+      href,
+    );
+    const logo = page.getByRole("img", { name, exact: true });
+    await expect(logo).toBeVisible();
+    await expect
+      .poll(() => logo.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
   }
   expect(errors).toEqual([]);
 });

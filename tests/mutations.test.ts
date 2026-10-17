@@ -5,7 +5,7 @@ import { HEADERS } from "@/lib/utils/inventory";
 
 // Execute the actual deployable Apps Script with a fake Google API. This tests
 // the same writer source the owner deploys, including its atomic batch shape.
-function harness(stock = 1) {
+function harness(stock = 1, tampons = 10, liners = 10) {
   const bathrooms: unknown[][] = [
     HEADERS,
     [
@@ -14,8 +14,8 @@ function harness(stock = 1) {
       "W204",
       "2",
       stock,
-      10,
-      10,
+      tampons,
+      liners,
       5,
       "AAUW",
       "",
@@ -28,6 +28,7 @@ function harness(stock = 1) {
   const log: unknown[][] = [
     ["Timestamp", "Bathroom ID", "Item", "Event", "Request ID", "Reason"],
   ];
+  const summary: unknown[][] = [["Tracking started", ""], ["Distributed since launch", 0]];
   let held = false;
   const release = vi.fn(() => {
     held = false;
@@ -41,12 +42,11 @@ function harness(stock = 1) {
       for (const request of body.requests) {
         if (request.updateCells) {
           const update = request.updateCells as {
-            start: { rowIndex: number; columnIndex: number };
+            start: { sheetId: number; rowIndex: number; columnIndex: number };
             rows: { values: Parameters<typeof decode>[0][] }[];
           };
-          nextBath[update.start.rowIndex][update.start.columnIndex] = decode(
-            update.rows[0].values[0],
-          );
+          const target = update.start.sheetId === 1 ? nextBath : update.start.sheetId === 2 ? nextLog : summary;
+          target[update.start.rowIndex][update.start.columnIndex] = decode(update.rows[0].values[0]);
         } else {
           const append = request.appendCells as {
             rows: { values: Parameters<typeof decode>[0][] }[];
@@ -87,6 +87,7 @@ function harness(stock = 1) {
           sheets: [
             { properties: { title: "Bathrooms", sheetId: 1 } },
             { properties: { title: "Log", sheetId: 2 } },
+            { properties: { title: "Summary", sheetId: 3 } },
           ],
         }),
         Values: {
@@ -113,13 +114,33 @@ function harness(stock = 1) {
           bathroomId: "ZACH-W204",
           event: "take",
           item: "pads",
+          quantity: 1,
           requestId: "ffea0634-3c5d-4825-a7d3-54b57434eb90",
           ...payload,
         }),
       },
     });
+  const editBathroom = () => {
+    const sheet = {
+      getName: () => "Bathrooms",
+      getLastColumn: () => HEADERS.length,
+      getRange: (row: number, column: number, height = 1, width = 1) => ({
+        getValues: () =>
+          bathrooms
+            .slice(row - 1, row - 1 + height)
+            .map((values) => values.slice(column - 1, column - 1 + width)),
+        setValue: (value: unknown) => {
+          bathrooms[row - 1][column - 1] = value;
+        },
+      }),
+    };
+    context.onEdit({
+      range: { getSheet: () => sheet, getRow: () => 2, getLastRow: () => 2 },
+    });
+  };
   return {
     request,
+    editBathroom,
     bathrooms,
     log,
     batchUpdate,
@@ -148,7 +169,7 @@ describe("Apps Script writer", () => {
     expect(h.bathrooms[1][4]).toBe(0);
     expect(h.bathrooms[1][13]).toMatch(/^\d{4}-.*T.*Z$/);
     expect(h.log).toHaveLength(2);
-    expect(h.batchUpdate.mock.calls[0][0].requests).toHaveLength(3);
+    expect(h.batchUpdate.mock.calls[0][0].requests).toHaveLength(5);
     expect(h.request({})).toMatchObject({
       ok: true,
       applied: false,
@@ -163,6 +184,42 @@ describe("Apps Script writer", () => {
       ok: false,
       code: "INVALID",
     });
+    expect(h.request({ quantity: 2 })).toMatchObject({ ok: false, code: "INVALID" });
+  });
+  it("takes up to five atomically and counts historical single-item rows", () => {
+    const h = harness(8);
+    expect(h.request({ quantity: 1 })).toMatchObject({ ok: true, distributed: 1 });
+    h.log[1][6] = ""; // Existing take rows have no quantity.
+    expect(h.log[0][6]).toBe("Quantity");
+    expect(h.request({ quantity: 5, requestId: "ffea0634-3c5d-4825-a7d3-54b57434eb91" })).toMatchObject({ ok: true, distributed: 6 });
+    expect(h.bathrooms[1][4]).toBe(2);
+    expect(h.log[2][6]).toBe(5);
+    expect(h.request({ quantity: 3, requestId: "ffea0634-3c5d-4825-a7d3-54b57434eb92" })).toMatchObject({ ok: false, code: "EMPTY" });
+  });
+  it("flags restock in the same batch when a take leaves every main product at three or fewer", () => {
+    const h = harness(4, 3, 3);
+    expect(h.request({})).toMatchObject({ ok: true, applied: true });
+    expect(h.bathrooms[1][4]).toBe(3);
+    expect(h.bathrooms[1][10]).toBe(true);
+    expect(h.log).toHaveLength(2);
+    expect(h.batchUpdate).toHaveBeenCalledTimes(1);
+    const stillStocked = harness(4, 3, 4);
+    stillStocked.request({});
+    expect(stillStocked.bathrooms[1][10]).toBe(false);
+  });
+  it("flags low stock after a direct spreadsheet edit", () => {
+    const low = harness(3, 3, 3);
+    low.editBathroom();
+    expect(low.bathrooms[1][10]).toBe(true);
+    const stocked = harness(3, 4, 3);
+    stocked.editBathroom();
+    expect(stocked.bathrooms[1][10]).toBe(false);
+  });
+  it("rejects quantities outside one to five", () => {
+    const h = harness(10);
+    for (const quantity of [0, 6, 1.5, "2", null])
+      expect(h.request({ quantity })).toMatchObject({ ok: false, code: "INVALID" });
+    expect(h.batchUpdate).not.toHaveBeenCalled();
   });
   it("handles competing requests against the last item without a negative count", async () => {
     const h = harness();

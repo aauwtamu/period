@@ -1,16 +1,14 @@
 import { Flag, MapPin } from "lucide-react";
 import { ITEMS, type Bathroom, type ItemType } from "@/types/inventory";
 import { ProductCounter } from "./product-counter";
-import { RelativeTime } from "./relative-time";
 
 export interface RowProps {
   bathroom: Bathroom;
   distance?: number;
-  now: number;
-  cooldown: number;
   busy: boolean;
   activeItem?: ItemType;
   retrying: boolean;
+  limitReached: boolean;
   take: (item: ItemType) => void;
   report: () => void;
 }
@@ -34,11 +32,10 @@ function Supplier({ bathroom: b }: { bathroom: Bathroom }) {
 export function RestroomRow({
   bathroom: b,
   distance,
-  now,
-  cooldown,
   busy,
   activeItem,
   retrying,
+  limitReached,
   take,
   report,
 }: RowProps) {
@@ -71,7 +68,8 @@ export function RestroomRow({
           <ProductCounter
             item={item}
             count={b[item]}
-            disabled={busy || cooldown > 0 || retrying}
+            disabled={busy || retrying}
+            limitReached={limitReached}
             pending={busy && activeItem === item}
             take={() => take(item)}
             location={`${b.building} ${b.room}`}
@@ -85,9 +83,6 @@ export function RestroomRow({
           <span />
           {b.needsRestock ? "Needs restock" : "No reports"}
         </span>
-        <span className="updated-label">
-          <RelativeTime value={b.lastUpdated} now={now} />
-        </span>
         <button
           className="report-link"
           onClick={report}
@@ -96,9 +91,6 @@ export function RestroomRow({
           <Flag size={12} />
           {b.needsRestock ? "Reported" : "Request restock"}
         </button>
-        {cooldown > 0 && (
-          <span className="cooldown-label">Another item in {cooldown}s</span>
-        )}
       </td>
     </tr>
   );

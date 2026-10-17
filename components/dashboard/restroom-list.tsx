@@ -4,8 +4,7 @@ export function RestroomList({ rows }: { rows: RowProps[] }) {
     <div className="table-wrap">
       <table className="restroom-table">
         <caption className="sr-only">
-          Campus bathroom product inventory. Use a take-one button after taking
-          a product.
+          Campus bathroom product inventory. Tap Take once for each item.
         </caption>
         <thead>
           <tr>
@@ -14,7 +13,7 @@ export function RestroomList({ rows }: { rows: RowProps[] }) {
             <th scope="col">TAMPONS</th>
             <th scope="col">LINERS</th>
             <th scope="col">OTHER</th>
-            <th scope="col">STATUS & UPDATES</th>
+            <th scope="col">STATUS</th>
           </tr>
         </thead>
         <tbody>

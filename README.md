@@ -62,7 +62,9 @@ rows cause an unavailable-data state so the app never invents stock counts.
 - Restock by editing the product counts in Bathrooms. Set Last Updated to an ISO
   timestamp such as `2026-09-27T15:00:00Z` to record when you checked it.
 - Enter the total now present (for example, 4 remaining + 20 added = 24).
-- Uncheck Needs Restock after the restock is complete.
+- Uncheck Needs Restock after the restock is complete. The app marks a location
+  as needing restock whenever pads, tampons, and liners are each 3 or fewer;
+  raise the counts above that threshold to clear the automatic status.
 - To add a location, supply a new permanent ID such as `ZACH-W204`, building,
   room, and all four counts. IDs must be unique and should not change afterward.
 - Keep product counts editable. Do not replace them with formulas.
@@ -95,14 +97,17 @@ can edit the sheet; a service-account key alone does not deploy it as that owner
   Search and building filters are preserved; failed refreshes mark old counts stale.
 - `decrementItem` and `flagBathroom` are public Server Actions. Zod validates input;
   Apps Script repeats validation and reads current counts under its script lock.
-- A single batch updates the stock/flag, timestamp, and Log. A take at zero is
-  rejected. Request IDs make retries idempotent. An uncertain response presents a
+- A single batch updates the stock/flag, timestamp, and Log. Each Take press
+  records one item; the browser allows five confirmed presses per bathroom visit.
+  The writer also accepts validated quantities of 1–5. Request IDs make retries idempotent. An uncertain response presents a
   retry button for the same operation; do not reload while resolving that retry.
+- A take that leaves pads, tampons, and liners at 3 or fewer flags the sheet in
+  the same batch. Direct edits to a bound Bathrooms sheet also flag low stock.
 - Successful writes invalidate the current server instance's read cache and
   revalidate the page. Older snapshots cannot undo a confirmed client update.
 - Geolocation is requested on click and stays in the browser. Denial silently
-  leaves alphabetical sorting. The five-second localStorage cooldown is a friendly
-  nudge, not a security boundary; logs support review rather than preventing abuse.
+  leaves alphabetical sorting. The visit limit uses session storage and resets
+  in a new tab; logs support review rather than preventing abuse.
 - Script locks coordinate app writes, not simultaneous human edits in Sheets.
 
 ## Verification
@@ -115,7 +120,7 @@ npm run build
 
 Unit tests execute the deployable Code.gs with a fake Google API and cover the
 atomic batch, duplicate IDs, last-item contention, busy locks, reports, errors,
-normalization, migration, cache expiry, distances, and cooldown timing.
+normalization, migration, cache expiry, distances, and quantity validation.
 
 Read-only browser checks need a running app with a populated sheet:
 
@@ -142,7 +147,6 @@ writes until the deployed writer checks pass. No cron job or database is require
 
 ## Branding handoff
 
-See [the asset checklist](public/branding/README.md) for filenames and dimensions.
-The header has an explicit logo placeholder; AAUW and WHOOP sponsor slots accept
-real images and official links through `lib/branding.ts`. The favicon is a temporary
-flower mark. Waves, flowers, and the hero care kit are editable SVG components.
+See [the brand asset guide](public/branding/README.md) for the active logo,
+illustration, icon, social preview, and sponsor logos. AAUW and WHOOP Instagram
+links are configured in `lib/branding.ts`.

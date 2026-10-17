@@ -57,6 +57,16 @@ describe("inventory normalization", () => {
       lastUpdated: null,
     });
   });
+  it("marks a location reported when all three main products are at most three", () => {
+    const low = [...row];
+    low[4] = "3";
+    low[5] = "3";
+    low[6] = "0";
+    low[10] = "FALSE";
+    expect(parseBathrooms([HEADERS, low])[0].needsRestock).toBe(true);
+    low[5] = "4";
+    expect(parseBathrooms([HEADERS, low])[0].needsRestock).toBe(false);
+  });
   it("ignores unused rows with Google-created unchecked checkbox values", () => {
     const empty = Array(11).fill("");
     empty[10] = "FALSE";
@@ -70,14 +80,14 @@ describe("request validation", () => {
     requestId: "ffea0634-3c5d-4825-a7d3-54b57434eb90",
   };
   it("accepts only the intended item and report operations", () => {
-    expect(decrementSchema.safeParse({ ...base, item: "pads" }).success).toBe(
+    expect(decrementSchema.safeParse({ ...base, item: "pads", quantity: 1 }).success).toBe(
       true,
     );
     expect(
-      decrementSchema.safeParse({ ...base, item: "pads", count: 999 }).success,
+      decrementSchema.safeParse({ ...base, item: "pads", quantity: 5, count: 999 }).success,
     ).toBe(false);
     expect(
-      decrementSchema.safeParse({ ...base, item: "__proto__" }).success,
+      decrementSchema.safeParse({ ...base, item: "__proto__", quantity: 1 }).success,
     ).toBe(false);
     expect(
       reportSchema.safeParse({ ...base, reason: "restock" }).success,
@@ -87,9 +97,11 @@ describe("request validation", () => {
     );
     expect(reportSchema.safeParse({ ...base, reason: "dispenser" }).success).toBe(false);
     expect(
-      decrementSchema.safeParse({ ...base, requestId: "bad", item: "pads" })
+      decrementSchema.safeParse({ ...base, requestId: "bad", item: "pads", quantity: 1 })
         .success,
     ).toBe(false);
+    for (const quantity of [0, 6, 1.5, "2"])
+      expect(decrementSchema.safeParse({ ...base, item: "pads", quantity }).success).toBe(false);
   });
 });
 describe("sheet migration", () => {

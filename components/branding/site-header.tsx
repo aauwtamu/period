@@ -1,29 +1,20 @@
-import { ArrowUpRight } from "lucide-react";
-import { LogoPlaceholder } from "./logo-placeholder";
+﻿import { MapPin } from "lucide-react";
+import { brand } from "@/lib/branding";
+import { BrandLogo } from "./brand-logo";
 
 export function SiteHeader() {
   return (
     <>
       <div className="announcement">
-        A little community care goes a long way. <span>♥</span> Free products.
-        Always.
+        <MapPin size={12} aria-hidden="true" /> Texas A&amp;M University
       </div>
       <header className="site-header content-width">
-        <a href="#" className="brand" aria-label="tamuperiod. home">
-          <LogoPlaceholder />
-          <span>
-            tamuperiod<span className="brand-dot">.</span>
-          </span>
+        <a href="#" className="brand" aria-label={`${brand.name} home`}>
+          <BrandLogo />
         </a>
         <nav aria-label="Main navigation">
-          <a href="#how-it-works" className="nav-link">
-            How it works
-          </a>
           <a href="#supported-by" className="nav-link">
             Our community
-          </a>
-          <a href="#inventory" className="button button-small">
-            Find products <ArrowUpRight size={16} />
           </a>
         </nav>
       </header>

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
-import { Minus, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import type { ItemType } from "@/types/inventory";
 
 export const itemLabels: Record<ItemType, string> = {
@@ -17,6 +17,7 @@ export function ProductCounter({
   pending,
   take,
   location,
+  limitReached,
 }: {
   item: ItemType;
   count: number;
@@ -24,10 +25,13 @@ export function ProductCounter({
   pending: boolean;
   take: () => void;
   location: string;
+  limitReached: boolean;
 }) {
   const reduced = useReducedMotion();
   const controls = useAnimationControls();
   const previous = useRef(count);
+  const singular =
+    item === "other" ? "other item" : itemLabels[item].toLowerCase();
   useEffect(() => {
     if (previous.current !== count && !reduced) {
       controls.set({ scale: 0.8, y: 3 });
@@ -50,15 +54,15 @@ export function ProductCounter({
       </span>
       <button
         onClick={take}
-        disabled={disabled || count === 0}
-        aria-label={`Take one ${itemLabels[item].toLowerCase()} from ${location}`}
+        disabled={disabled || count === 0 || limitReached}
+        aria-label={
+          limitReached
+            ? `Five-item visit limit reached at ${location}`
+            : `Take one ${singular} from ${location}`
+        }
       >
-        {pending ? (
-          <LoaderCircle size={12} className="spin" />
-        ) : (
-          <Minus size={12} />
-        )}
-        <span>{count === 0 ? "Empty" : `1 ${itemLabels[item]}`}</span>
+        {pending && <LoaderCircle size={12} className="spin" />}
+        <span>{count === 0 ? "Empty" : limitReached ? "5 taken" : "Take"}</span>
       </button>
     </div>
   );

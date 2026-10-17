@@ -1,3 +1,6 @@
+import { BrandLogo } from "@/components/branding/brand-logo";
+import { brand } from "@/lib/branding";
+
 export default function Loading() {
   return (
     <main
@@ -5,7 +8,7 @@ export default function Loading() {
       aria-busy="true"
       aria-label="Loading campus inventory"
     >
-      <p className="footer-wordmark">tamuperiod.</p>
+      <BrandLogo alt={brand.name} />
       <h1>A little care is on its way.</h1>
       <p>Finding the latest campus counts…</p>
       <div className="stats-grid">

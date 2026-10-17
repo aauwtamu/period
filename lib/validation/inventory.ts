@@ -7,7 +7,7 @@ const common = {
 };
 
 export const decrementSchema = z
-  .object({ ...common, item: z.enum(ITEMS) })
+  .object({ ...common, item: z.enum(ITEMS), quantity: z.number().int().min(1).max(5) })
   .strict();
 export const reportSchema = z
   .object({

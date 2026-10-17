@@ -25,7 +25,10 @@ export const LOG_HEADERS = [
   "Event",
   "Request ID",
   "Reason",
+  "Quantity",
 ];
+const DISTRIBUTED_FORMULA =
+  '=COUNTIFS(Log!D2:D,"take",Log!G2:G,"")+SUMIF(Log!D2:D,"take",Log!G2:G)';
 
 export function migrateRows(values) {
   const old = values[0]?.map((h) => String(h).trim()) ?? [];
@@ -128,10 +131,14 @@ export async function main() {
   const existingSummary = tabs.find((t) => t.title === "Summary");
   if (existingLog) {
     const { data: log } = await client.spreadsheets.values.get(
-      { spreadsheetId, range: "'Log'!A1:F1" },
+      { spreadsheetId, range: "'Log'!A1:G1" },
       options,
     );
-    if (JSON.stringify(log.values?.[0]) !== JSON.stringify(LOG_HEADERS))
+    if (
+      JSON.stringify(log.values?.[0]) !== JSON.stringify(LOG_HEADERS) &&
+      JSON.stringify(log.values?.[0]) !==
+        JSON.stringify(LOG_HEADERS.slice(0, 6))
+    )
       throw new Error(
         "Existing Log has a different schema; refusing to overwrite it.",
       );
@@ -144,7 +151,9 @@ export async function main() {
     if (
       summary.values?.[0]?.[0] !== "Tracking started" ||
       summary.values?.[1]?.[0] !== "Distributed since launch" ||
-      summary.values?.[1]?.[1] !== '=COUNTIF(Log!D2:D,"take")'
+      !['=COUNTIF(Log!D2:D,"take")', DISTRIBUTED_FORMULA].includes(
+        summary.values?.[1]?.[1],
+      )
     )
       throw new Error(
         "Existing Summary differs from the expected launch counter; refusing to overwrite it.",
@@ -254,6 +263,15 @@ export async function main() {
       write(id, [LOG_HEADERS]),
     );
   }
+  if (existingLog) {
+    requests.push({
+      updateCells: {
+        start: { sheetId: existingLog.sheetId, rowIndex: 0, columnIndex: 6 },
+        rows: [{ values: [cell("Quantity")] }],
+        fields: "userEnteredValue",
+      },
+    });
+  }
   if (!existingSummary) {
     const id = nextId();
     requests.push(
@@ -270,11 +288,20 @@ export async function main() {
           {
             values: [
               {
-                userEnteredValue: { formulaValue: '=COUNTIF(Log!D2:D,"take")' },
+                userEnteredValue: { formulaValue: DISTRIBUTED_FORMULA },
               },
             ],
           },
         ],
+        fields: "userEnteredValue",
+      },
+    });
+  }
+  if (existingSummary) {
+    requests.push({
+      updateCells: {
+        start: { sheetId: existingSummary.sheetId, rowIndex: 1, columnIndex: 1 },
+        rows: [{ values: [{ userEnteredValue: { formulaValue: DISTRIBUTED_FORMULA } }] }],
         fields: "userEnteredValue",
       },
     });

@@ -17,6 +17,12 @@ export const HEADERS = [
   "Last Updated",
 ];
 
+export function isLowStock(
+  counts: Pick<Bathroom, "pads" | "tampons" | "liners">,
+) {
+  return counts.pads <= 3 && counts.tampons <= 3 && counts.liners <= 3;
+}
+
 export function parseBathrooms(values: unknown[][]): Bathroom[] {
   const headers = (values[0] ?? []).map(String);
   for (const name of HEADERS) {
@@ -65,18 +71,23 @@ export function parseBathrooms(values: unknown[][]): Bathroom[] {
         return raw && Number.isFinite(n) && Math.abs(n) <= limit ? n : null;
       };
       const date = str("Last Updated");
+      const pads = count("Pads");
+      const tampons = count("Tampons");
+      const liners = count("Liners");
       return {
         id,
         building: str("Building"),
         room: str("Room"),
         floor: str("Floor"),
-        pads: count("Pads"),
-        tampons: count("Tampons"),
-        liners: count("Liners"),
+        pads,
+        tampons,
+        liners,
         other: count("Other"),
         supplier: str("Supplier"),
         socials: str("Socials"),
-        needsRestock: ["true", "yes"].includes(flag),
+        needsRestock:
+          ["true", "yes"].includes(flag) ||
+          isLowStock({ pads, tampons, liners }),
         latitude: coordinate("Latitude", 90),
         longitude: coordinate("Longitude", 180),
         lastUpdated: date && !Number.isNaN(Date.parse(date)) ? date : null,

@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/branding/site-header";
 import { SiteFooter } from "@/components/branding/site-footer";
 import { HeroSection } from "@/components/dashboard/hero-section";
 import { InventoryDashboard } from "@/components/dashboard/inventory-dashboard";
-import { ClosingCTA } from "@/components/dashboard/closing-cta";
+import { BottomFooter } from "@/components/dashboard/bottom-footer";
 import { WaveDivider } from "@/components/ui/wave-divider";
 export const runtime = "nodejs";
 export default async function Home() {
@@ -21,7 +21,7 @@ export default async function Home() {
         <WaveDivider className="hero-wave" />
         <InventoryDashboard initial={inventory} />
         <SiteFooter />
-        <ClosingCTA />
+        <BottomFooter />
       </main>
     </>
   );

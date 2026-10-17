@@ -33,6 +33,11 @@ The browser never receives the endpoint secret or service-account credentials.
 8. For code updates, use **Deploy → Manage deployments → Edit → New version**.
    Keep one production script project/deployment: locks are scoped to the script.
 
+Deploy the updated writer before releasing the Take button update. Its first take
+adds the Log `Quantity` header and updates the Summary formula in the same batch.
+Existing takes without a quantity continue to count as one. Running
+`npm run sheets:setup -- --apply` also updates those two cells after preview.
+
 If the organization's Workspace policy does not allow access by Anyone, this
 deployment approach needs an administrator's change or a different writer host.
 An endpoint requiring an interactive Google login will not work for server calls.
@@ -54,7 +59,7 @@ Use the same headers as Bathrooms. Run `npm run sheets:setup -- --spreadsheet-id
 Deploy a **separate test copy** of this script pointed at that ID, with a different
 secret. Point a local/preview app at the test sheet and test writer together.
 
-- Take one pad: stock becomes zero, Last Updated changes, and one `take` log appears.
+- Take up to five pads: stock decreases by that amount, Last Updated changes, and one `take` log records the quantity.
 - Retry the same request ID: no second decrement or audit entry.
 - Send two different take requests together with one remaining item: one succeeds,
   one returns `EMPTY`; stock remains zero.
@@ -71,12 +76,16 @@ this deployed integration check.
 
 - Keep **Log** append-only. Request IDs support retry safety; deleting entries
   removes both audit history and duplicate protection.
-- `Summary!B2` counts `take` events; reports do not increase the count.
+- `Summary!B2` totals quantities from `take` events; historical log entries without a quantity count as one. Reports do not increase the count.
 - The script lock covers app writes only. It cannot lock a human editing the same
   spreadsheet cell simultaneously. Avoid editing a cell during a pending app update.
 - A write uses one Sheets batch for stock/flag, timestamp, and audit row.
   If its result is uncertain, the app retains the request ID for the retry.
-- The five-second browser cooldown is a nudge, not authentication or abuse prevention.
+- When pads, tampons, and liners are each 3 or fewer, the app shows Needs restock
+  and Reported. A take sets the sheet flag in its batch; the bound-sheet `onEdit`
+  trigger also sets it after manual count changes. Existing low-count rows show
+  the status immediately in the app; their checkbox is set on the next take or edit.
+- The writer enforces a maximum of five items per take request. This is a per-request limit, not authentication or abuse prevention.
 - Read and audit scans suit a small campus deployment. Monitor Google quotas and
   request times as the log grows; do not archive/delete logs without preserving
   the distribution total and idempotency records.

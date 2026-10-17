@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Heart, Info } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { decrementItem, flagBathroom } from "@/app/actions/inventory";
 import { alphabetical } from "@/lib/utils/inventory";
 import { distanceKm } from "@/lib/utils/distance";
 import { useProximitySort } from "@/hooks/use-proximity-sort";
-import { useBathroomCooldown } from "@/hooks/use-bathroom-cooldown";
 import type {
   Bathroom,
   InventoryLoad,
@@ -20,11 +19,20 @@ import { InventoryToolbar } from "./inventory-toolbar";
 import { RestroomList } from "./restroom-list";
 import { ReportDialog } from "./report-dialog";
 import { InventoryStatus } from "./inventory-status";
-import { FlowerDecoration } from "@/components/ui/flower-decoration";
 
 type Operation = { bathroomId: string; requestId: string } & (
-  { event: "take"; item: ItemType } | { event: "report"; reason: ReportReason }
+  | { event: "take"; item: ItemType; quantity: number }
+  | { event: "report"; reason: ReportReason }
 );
+const VISIT_KEY = "tamuperiod:taken-this-visit:";
+function storedVisitCount(bathroomId: string) {
+  try {
+    const value = Number(sessionStorage.getItem(VISIT_KEY + bathroomId));
+    return Number.isInteger(value) && value > 0 ? Math.min(5, value) : 0;
+  } catch {
+    return 0;
+  }
+}
 
 export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
   const router = useRouter();
@@ -36,15 +44,34 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
   const [readError, setReadError] = useState(initial.ok ? "" : initial.message);
   const [search, setSearch] = useState("");
   const [building, setBuilding] = useState("");
-  const [now, setNow] = useState(initial.ok ? initial.snapshot.fetchedAt : 0);
   const [active, setActive] = useState<Operation | null>(null);
   const [uncertain, setUncertain] = useState<Operation | null>(null);
   const [notice, setNotice] = useState("");
   const [report, setReport] = useState<Bathroom | null>(null);
   const locked = useRef(false);
+  const taken = useRef<Record<string, number>>({});
+  const [takenThisVisit, setTakenThisVisit] = useState<Record<string, number>>({});
   const reduceMotion = useReducedMotion();
-  const cooldown = useBathroomCooldown();
   const { position, locating, locate } = useProximitySort();
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const counts: Record<string, number> = {};
+        for (let index = 0; index < sessionStorage.length; index++) {
+          const key = sessionStorage.key(index);
+          if (!key?.startsWith(VISIT_KEY)) continue;
+          const bathroomId = key.slice(VISIT_KEY.length);
+          const value = storedVisitCount(bathroomId);
+          if (value > 0) counts[bathroomId] = value;
+        }
+        taken.current = counts;
+        setTakenThisVisit(counts);
+      } catch {
+        // The in-memory limit still applies if storage is unavailable.
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
   // Reconcile server props without resetting filters or undoing a confirmed write.
   if (initial !== previousInitial) {
     setPreviousInitial(initial);
@@ -63,7 +90,6 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
       if (!document.hidden) startRefresh(() => router.refresh());
     };
     const timer = window.setInterval(() => {
-      setNow(Date.now());
       refreshVisible();
     }, 30_000);
     document.addEventListener("visibilitychange", refreshVisible);
@@ -82,7 +108,12 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
       const { bathroomId, requestId } = operation;
       const result =
         operation.event === "take"
-          ? await decrementItem({ bathroomId, requestId, item: operation.item })
+          ? await decrementItem({
+              bathroomId,
+              requestId,
+              item: operation.item,
+              quantity: operation.quantity,
+            })
           : await flagBathroom({
               bathroomId,
               requestId,
@@ -94,12 +125,20 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
             ? result.snapshot
             : old,
         );
-        setNow(result.snapshot.fetchedAt);
         setReadError("");
         setUncertain(null);
         if (operation.event === "take") {
-          cooldown.start(bathroomId);
-          setNotice("Count updated. Take care of yourself, Aggie. ♥");
+          const count = Math.min(5, (taken.current[bathroomId] ?? 0) + 1);
+          taken.current = { ...taken.current, [bathroomId]: count };
+          setTakenThisVisit(taken.current);
+          try {
+            sessionStorage.setItem(VISIT_KEY + bathroomId, String(count));
+          } catch {
+            // In-memory count remains available.
+          }
+          setNotice(
+            count === 5 ? "Five items recorded for this visit." : "Count updated.",
+          );
         } else {
           setNotice(
             result.applied
@@ -137,12 +176,17 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
     }
   }
   function take(bathroom: Bathroom, item: ItemType) {
-    if (cooldown.remaining(bathroom.id) || bathroom[item] <= 0 || uncertain)
+    if (
+      bathroom[item] < 1 ||
+      Math.max(taken.current[bathroom.id] ?? 0, storedVisitCount(bathroom.id)) >= 5 ||
+      uncertain
+    )
       return;
     void perform({
       event: "take",
       bathroomId: bathroom.id,
       item,
+      quantity: 1,
       requestId: crypto.randomUUID(),
     });
   }
@@ -178,55 +222,19 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
         className="content-width overview"
         aria-labelledby="overview-title"
       >
-        <div className="section-kicker">
-          <p className="eyebrow">A CAMPUS THAT CARES</p>
-          <span>
-            Little essentials. A big difference. <Heart size={14} />
-          </span>
-        </div>
         <h2 id="overview-title" className="sr-only">
           Campus inventory overview
         </h2>
         <StatsCards snapshot={snapshot} />
       </section>
       <section
-        className="how-it-works content-width"
-        id="how-it-works"
-        aria-label="How it works"
-      >
-        <span>
-          <b>01</b> Find a bathroom.
-        </span>
-        <FlowerDecoration />
-        <span>
-          <b>02</b> Take what you need.
-        </span>
-        <FlowerDecoration />
-        <span>
-          <b>03</b> Tap to keep us in the loop.
-        </span>
-      </section>
-      <section
         className="inventory-section content-width"
         id="inventory"
         aria-labelledby="inventory-title"
       >
-        <div className="inventory-heading">
-          <div>
-            <p className="eyebrow">YOUR NEXT STOP</p>
-            <h2 id="inventory-title">
-              Find your essentials
-              <FlowerDecoration />.
-            </h2>
-            <p>A little peace of mind, just around the corner.</p>
-          </div>
-          <span className="live-label">
-            <span />
-            {snapshot
-              ? `${bathrooms.length} campus locations`
-              : "Campus inventory"}
-          </span>
-        </div>
+        <h2 id="inventory-title" className="sr-only">
+          Campus product inventory
+        </h2>
         <InventoryToolbar
           search={search}
           setSearch={setSearch}
@@ -239,13 +247,6 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
           refreshing={refreshing}
           refresh={refresh}
         />
-        <div className="table-help">
-          <Info size={14} />
-          <span>
-            Taking a product? Tap <strong>−1</strong> to help keep these counts
-            up to date.
-          </span>
-        </div>
         <div className="action-notice" aria-live="polite" aria-atomic="true">
           {notice && (
             <div>
@@ -276,14 +277,13 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
             rows={filtered.map((bathroom) => ({
               bathroom,
               distance: distance(bathroom),
-              now: now || snapshot.fetchedAt,
-              cooldown: cooldown.remaining(bathroom.id),
               busy: !!active,
               activeItem:
                 active?.bathroomId === bathroom.id && active.event === "take"
                   ? active.item
                   : undefined,
               retrying: !!uncertain,
+              limitReached: (takenThisVisit[bathroom.id] ?? 0) >= 5,
               take: (item) => take(bathroom, item),
               report: () => setReport(bathroom),
             }))}
@@ -294,9 +294,6 @@ export function InventoryDashboard({ initial }: { initial: InventoryLoad }) {
             {snapshot
               ? `Showing ${filtered.length} of ${bathrooms.length} locations`
               : "Counts will appear when available"}
-          </span>
-          <span>
-            <Heart size={12} /> Stocked by our community. Updated by you.
           </span>
         </div>
       </section>

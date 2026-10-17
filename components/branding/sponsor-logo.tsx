@@ -9,14 +9,12 @@ export function SponsorLogo({
   imageSrc?: string;
   href?: string;
 }) {
-  // Add /public/branding/<name>.svg, with a 320 × 160 viewBox, or a 640 × 320
-  // transparent PNG. Set imageSrc and the official URL in lib/branding.ts.
   const content = imageSrc ? (
     <Image
       src={imageSrc}
       alt={name}
-      width={320}
-      height={160}
+      fill
+      sizes="(max-width: 640px) 135px, (max-width: 900px) 140px, 172px"
       className="sponsor-image"
     />
   ) : (
@@ -25,11 +23,12 @@ export function SponsorLogo({
       <small>LOGO PLACEHOLDER</small>
     </span>
   );
+  const slotClass = imageSrc ? "sponsor-slot sponsor-slot-image" : "sponsor-slot";
   return href ? (
-    <a className="sponsor-slot" href={href} target="_blank" rel="noreferrer">
+    <a className={slotClass} href={href} target="_blank" rel="noopener noreferrer">
       {content}
     </a>
   ) : (
-    <div className="sponsor-slot">{content}</div>
+    <div className={slotClass}>{content}</div>
   );
 }
