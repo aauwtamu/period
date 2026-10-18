@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { HEADERS, parseBathrooms, inventoryStats } from "@/lib/utils/inventory";
+import {
+  HEADERS,
+  parseBathrooms,
+  inventoryStats,
+  restockRecordedInSheet,
+} from "@/lib/utils/inventory";
 import { decrementSchema, reportSchema } from "@/lib/validation/inventory";
 import { migrateRows } from "../scripts/setup-sheets.mjs";
 
@@ -66,6 +71,17 @@ describe("inventory normalization", () => {
     expect(parseBathrooms([HEADERS, low])[0].needsRestock).toBe(true);
     low[5] = "4";
     expect(parseBathrooms([HEADERS, low])[0].needsRestock).toBe(false);
+  });
+  it("distinguishes a displayed low-stock status from the stored sheet flag", () => {
+    const low = [...row];
+    low[4] = "3";
+    low[5] = "3";
+    low[6] = "3";
+    low[10] = "FALSE";
+    expect(parseBathrooms([HEADERS, low])[0].needsRestock).toBe(true);
+    expect(restockRecordedInSheet([HEADERS, low], "ZACH-W204")).toBe(false);
+    low[10] = "TRUE";
+    expect(restockRecordedInSheet([HEADERS, low], "ZACH-W204")).toBe(true);
   });
   it("ignores unused rows with Google-created unchecked checkbox values", () => {
     const empty = Array(11).fill("");

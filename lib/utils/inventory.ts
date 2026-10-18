@@ -23,6 +23,21 @@ export function isLowStock(
   return counts.pads <= 3 && counts.tampons <= 3 && counts.liners <= 3;
 }
 
+export function restockRecordedInSheet(values: unknown[][], bathroomId: string) {
+  const headers = (values[0] ?? []).map((value) => String(value).trim());
+  const idColumn = headers.indexOf("ID");
+  const restockColumn = headers.indexOf("Needs Restock");
+  if (idColumn < 0 || restockColumn < 0)
+    throw new Error("Missing bathroom restock flag");
+  const row = values
+    .slice(1)
+    .find((item) => String(item[idColumn] ?? "").trim() === bathroomId);
+  if (!row) throw new Error("Missing bathroom restock flag");
+  return ["true", "yes"].includes(
+    String(row[restockColumn] ?? "").trim().toLowerCase(),
+  );
+}
+
 export function parseBathrooms(values: unknown[][]): Bathroom[] {
   const headers = (values[0] ?? []).map(String);
   for (const name of HEADERS) {

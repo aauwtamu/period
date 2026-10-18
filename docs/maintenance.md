@@ -102,8 +102,12 @@ can edit the sheet; a service-account key alone does not deploy it as that owner
   The writer also accepts validated quantities of 1–5. Request IDs make retries
   idempotent. An uncertain response presents a retry button for the same
   operation; do not reload while resolving that retry.
-- A take that leaves pads, tampons, and liners at 3 or fewer flags the sheet in
-  the same batch. Direct edits to a bound Bathrooms sheet also flag low stock.
+- The Apps Script source in this repo flags the sheet in the same batch when a
+  Take leaves pads, tampons, and liners at 3 or fewer. The server checks the
+  actual sheet checkbox in the writer response and sends an automatic restock
+  report if an older deployed script left it unchecked. If that follow-up cannot be
+  confirmed, the UI offers a retry with the same Take request ID, so the item
+  is not counted twice. Direct edits to a bound Bathrooms sheet also flag low stock.
 - Successful writes invalidate the current server instance's read cache and
   revalidate the page. Older snapshots cannot undo a confirmed client update.
 - Geolocation is requested on click and stays in the browser. Denial silently

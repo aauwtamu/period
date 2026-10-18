@@ -1,7 +1,11 @@
 import "server-only";
 import { z } from "zod";
-import { parseBathrooms } from "@/lib/utils/inventory";
+import { parseBathrooms, restockRecordedInSheet } from "@/lib/utils/inventory";
 import type { ActionResult } from "@/types/inventory";
+
+type WriterResult =
+  | (Extract<ActionResult, { ok: true }> & { sheetNeedsRestock: boolean })
+  | Extract<ActionResult, { ok: false }>;
 
 const responseSchema = z.discriminatedUnion("ok", [
   z.object({
@@ -24,7 +28,9 @@ const messages: Record<string, string> = {
   DATA: "This location’s counts need checking. Please try another location.",
 };
 
-export async function writeInventory(payload: object): Promise<ActionResult> {
+export async function writeInventory(
+  payload: { bathroomId: string } & Record<string, unknown>,
+): Promise<WriterResult> {
   const url = process.env.SHEETS_WRITER_URL;
   const secret = process.env.SHEETS_WRITER_SECRET;
   if (!url || !secret)
@@ -49,6 +55,7 @@ export async function writeInventory(payload: object): Promise<ActionResult> {
     return {
       ok: true,
       applied: result.applied,
+      sheetNeedsRestock: restockRecordedInSheet(result.values, payload.bathroomId),
       snapshot: {
         bathrooms: parseBathrooms(result.values),
         distributed: result.distributed,

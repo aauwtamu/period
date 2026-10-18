@@ -33,7 +33,11 @@ The browser never receives the endpoint secret or service-account credentials.
 8. For code updates, use **Deploy → Manage deployments → Edit → New version**.
    Keep one production script project/deployment: locks are scoped to the script.
 
-Deploy the updated writer before releasing the Take button update. Its first take
+GitHub and Vercel deployments do not update this Apps Script web app. Publish a
+new Apps Script version after copying the current `Code.gs`; its Take operation
+then writes the stock count and automatic Needs Restock checkbox together.
+
+Deploy the updated writer to make automatic restock flags atomic. Its first take
 adds the Log `Quantity` header and updates the Summary formula in the same batch.
 Existing takes without a quantity continue to count as one. Running
 `npm run sheets:setup -- --apply` also updates those two cells after preview.
