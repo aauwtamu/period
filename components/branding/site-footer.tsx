@@ -7,14 +7,14 @@ export function SiteFooter() {
   return (
     <>
       <section
-        className="sponsor-section"
+        className="community-section"
         id="supported-by"
-        aria-labelledby="sponsor-title"
+        aria-labelledby="community-title"
       >
-        <WaveDivider className="sponsor-wave" />
-        <div className="content-width sponsor-inner">
+        <WaveDivider className="community-wave" />
+        <div className="content-width community-inner">
           <div>
-            <h2 id="sponsor-title">
+            <h2 id="community-title">
               Care is a<br />
               community effort
               <Image
@@ -25,16 +25,16 @@ export function SiteFooter() {
               />
             </h2>
           </div>
-          <div className="sponsor-list">
+          <div className="community-logos">
             {sponsors.map((s) => (
               <SponsorLogo key={s.name} {...s} />
             ))}
           </div>
         </div>
-        <p className="sponsor-thanks">
+        <p className="community-thanks">
           A big thank you to the organizations keeping our campus stocked!
         </p>
-        <WaveDivider className="closing-wave" />
+        <WaveDivider className="community-closing-wave" />
       </section>
     </>
   );

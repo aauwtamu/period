@@ -15,15 +15,15 @@ export function SponsorLogo({
       alt={name}
       fill
       sizes="(max-width: 640px) 135px, (max-width: 900px) 140px, 172px"
-      className="sponsor-image"
+      className="community-logo-art"
     />
   ) : (
-    <span className="sponsor-placeholder">
+    <span className="community-logo-placeholder">
       <strong>{name}</strong>
       <small>LOGO PLACEHOLDER</small>
     </span>
   );
-  const slotClass = imageSrc ? "sponsor-slot sponsor-slot-image" : "sponsor-slot";
+  const slotClass = imageSrc ? "community-logo community-logo-image" : "community-logo";
   return href ? (
     <a className={slotClass} href={href} target="_blank" rel="noopener noreferrer">
       {content}

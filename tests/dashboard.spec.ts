@@ -90,7 +90,10 @@ test("inventory is responsive, searchable, and handles denied location", async (
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(reportButton).toBeFocused();
   }
-  await page.locator(".sponsor-list").scrollIntoViewIfNeeded();
+  await page.locator(".community-logos").scrollIntoViewIfNeeded();
+  await expect(
+    page.getByRole("heading", { name: /Care is a community effort/ }),
+  ).toBeVisible();
   for (const [name, href] of [
     ["AAUW", "https://www.instagram.com/aauw.tamu/"],
     ["WHOOP", "https://www.instagram.com/whoop.tamu/"],
