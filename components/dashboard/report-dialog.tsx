@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { Flag, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { Bathroom, ReportReason } from "@/types/inventory";
 
 export function ReportDialog({
@@ -45,21 +45,13 @@ export function ReportDialog({
         >
           <X size={19} />
         </button>
-        <span className="dialog-icon">
-          <Flag size={24} />
-        </span>
-        <p className="eyebrow">A LITTLE HEADS-UP HELPS</p>
         <h2 id="report-title">Request a restock?</h2>
         <p>
-          {bathroom.building} · Room {bathroom.room}
+          Let our volunteers know that products at {bathroom.building} are running low or empty.
         </p>
-        <p>Let our volunteers know that products are running low or empty.</p>
         <button className="button" type="submit">
-          Send a little heads-up <Flag size={15} />
+          Send a little heads-up to our community volunteers
         </button>
-        <p className="dialog-note">
-          This flags the location for our community volunteers.
-        </p>
       </form>
     </dialog>
   );

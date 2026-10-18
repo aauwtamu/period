@@ -762,6 +762,7 @@ a.community-logo-image:hover {
   font-size: 31px;
   font-weight: 900;
   margin: 6px 0;
+  padding-right: 46px;
 }
 .report-dialog form > p:not(.eyebrow) {
   font-size: 12px;
@@ -802,6 +803,10 @@ a.community-logo-image:hover {
 }
 .report-dialog .button {
   width: 100%;
+  margin-top: 18px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
 }
 .report-dialog .dialog-note {
   margin-top: 14px;
