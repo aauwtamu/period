@@ -16,6 +16,14 @@ export function SiteHeader() {
           <a href="#supported-by" className="nav-link">
             Our community
           </a>
+          <a
+            href={brand.links.requestLocation}
+            className="nav-link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Request a new location
+          </a>
         </nav>
       </header>
     </>

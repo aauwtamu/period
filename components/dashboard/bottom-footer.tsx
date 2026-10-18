@@ -11,14 +11,6 @@ export function BottomFooter() {
       <p>
         Made with <Heart size={12} /> for the aggie community.
       </p>
-      <a
-        className="nav-link"
-        href={brand.links.requestLocation}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Request a new location
-      </a>
     </footer>
   );
 }

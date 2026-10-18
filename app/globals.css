@@ -1135,6 +1135,17 @@ a.community-logo-image:hover {
     font-size: 8px;
   }
 }
+@media (max-width: 470px) {
+  .site-header {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+  .site-header nav {
+    width: 100%;
+    justify-content: flex-end;
+    gap: 18px;
+  }
+}
 @media (max-width: 350px) {
   .site-header {
     gap: 10px;
