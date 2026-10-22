@@ -49,8 +49,7 @@ export function RestroomRow({
           <div>
             <strong>{b.building}</strong>
             <span>
-              Room {b.room} <span className="middot">·</span> Floor{" "}
-              {b.floor || "—"}
+              Floor {b.floor || "—"}
             </span>
           </div>
         </div>
